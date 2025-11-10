@@ -1,91 +1,151 @@
-# main.py
+# main.py - Direct Execution with User Selection
 
 import time
 import csv
 import os
-from connection import connect_instrument, close_instrument, identify_instrument
-# Import only the required functions
-from func import set_function_square, set_trigger_internal, set_trigger_timer, clear_status
-# Note: Data logging imports (log_data) are removed
+import sys
 
+# Import connection functions
+from connection import connect_instrument, close_instrument, identify_instrument
+
+# Import instrument control functions
+from func import set_function_square, set_trigger_internal, set_trigger_timer, clear_status
+
+# --- Configuration ---
 CONFIG_FILENAME = "config.csv"
 
-def read_config(filename: str) -> dict:
+def read_config(filename: str) -> list:
     """
-    Reads the last data row from a CSV configuration file.
-    Returns a dictionary with parameters or defaults if the file is not found.
+    Reads ALL data rows from a CSV configuration file.
+    Returns a list of dictionaries, one for each sequence.
+    (Keeping your robust reading logic from before)
     """
-    defaults = {'freq_hz': 1.0, 'ampl_vpp': 1.0, 'offset_v': 0.0, 'duty_cycle': 50.0, 'trigger_delay_s': 2.0}
-
+    all_sequences = [] 
+    
     if not os.path.exists(filename):
-        print(f"⚠️  Warning: Config file '{filename}' not found. Using default parameters.")
-        return defaults
+        print(f"❌ Error: Config file '{filename}' not found. Cannot proceed.")
+        sys.exit(1)
 
     try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            header = next(reader) # Skip header
-            last_row = None
-            for row in reader:
-                if row: # Ensure row is not empty
-                    last_row = row
+        with open(filename, newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+
+            for i, row in enumerate(reader, start=1):
+                if not row or not row.get("pulse_name"): continue 
+                
+                try:
+                    params = {
+                        'pulse_name': row['pulse_name'],
+                        'freq_hz': float(row['frequency_hz']),
+                        'ampl_vpp': float(row['amplitude_vpp']),
+                        'offset_v': float(row['offset_v']),
+                        'duty_cycle': float(row['duty_cycle']),
+                        'trigger_delay_s': float(row['trigger_delay_s'])
+                    }
+                    all_sequences.append(params)
+                except (ValueError, KeyError) as e:
+                    print(f"❌ Error converting or accessing column in row {i} ('{row.get('pulse_name', 'Unknown')}'). Skipping. Details: {e}")
             
-            if last_row:
-                params = {
-                    'freq_hz': float(last_row[0]),
-                    'ampl_vpp': float(last_row[1]),
-                    'offset_v': float(last_row[2]),
-                    'duty_cycle': float(last_row[3]),
-                    'trigger_delay_s': float(last_row[4])
-                }
-                print(f"✅ Loaded configuration from '{filename}'.")
-                return params
-            else:
-                print(f"⚠️  Warning: Config file '{filename}' is empty. Using default parameters.")
-                return defaults
-    except (IOError, ValueError, IndexError) as e:
-        print(f"❌ Error reading config file '{filename}': {e}. Using default parameters.")
-        return defaults
+            if not all_sequences:
+                print(f"❌ Error: Config file '{filename}' contains no valid data rows.")
+                sys.exit(1)
+            
+            print(f"✅ Successfully loaded {len(all_sequences)} sequences from '{filename}'.")
+            return all_sequences
+            
+    except Exception as e:
+        print(f"❌ An error occurred while reading '{filename}'. Details: {e}")
+        sys.exit(1)
 
-if __name__ == "__main__":
+
+def select_sequence(sequences: list) -> dict:
+    """
+    Displays the list of sequences and prompts the user to select one.
+    Returns the dictionary for the selected sequence.
+    """
+    print("\n" + "=" * 40)
+    print("📋 Available Sequences:")
+    print("=" * 40)
     
-    # Read parameters from the external file first
-    config_params = read_config(CONFIG_FILENAME)
+    # 1. Display list of sequences
+    for index, seq in enumerate(sequences):
+        print(f"[{index + 1}] {seq['pulse_name']}")
+    
+    print("-" * 40)
+    
+    while True:
+        try:
+            # 2. Get user input
+            choice = input(f"Enter the number of the sequence to run (1-{len(sequences)}): ")
+            choice_index = int(choice) - 1
+            
+            # 3. Validate input
+            if 0 <= choice_index < len(sequences):
+                selected_seq = sequences[choice_index]
+                print(f"➡️ Selected: **{selected_seq['pulse_name']}**")
+                return selected_seq
+            else:
+                print("❌ Invalid selection. Please enter a number from the list.")
+        except ValueError:
+            print("❌ Invalid input. Please enter a whole number.")
 
-    # 1. Connect to the device
-    # inst is set globally in connection.py
+
+def execute_sequence(config_params: dict):
+    """
+    Connects to the instrument, applies the given configuration,
+    and runs it for a set time.
+    """
+    # 1. Connect to the device (will exit if connection fails)
     connect_instrument() 
     
     try:
-        print("-" * 40)
-        # Use identify_instrument to confirm communication
+        print("-" * 50)
         print(f"Connected to: {identify_instrument()}")
         clear_status()
-
-        print("\n--- Device Configuration ---")
+        
+        sequence_name = config_params['pulse_name']
+        run_time_s = 5 # Define how long this sequence should run
+        
+        print("\n" + "=" * 50)
+        print(f"--- STARTING SEQUENCE: {sequence_name} ---")
+        print(f"Running for {run_time_s} seconds...")
+        print("=" * 50)
         
         # 2. Set Square Wave Parameters
-        # Create a separate dictionary for the function arguments to avoid TypeError
         square_wave_params = {
             'freq_hz': config_params['freq_hz'],
             'ampl_vpp': config_params['ampl_vpp'],
             'offset_v': config_params['offset_v'],
             'duty_cycle': config_params['duty_cycle']
         }
-        set_function_square(**square_wave_params)
+        set_function_square(**square_wave_params) 
         
-        # 3. Set Internal Trigger Source
+        # 3. Set Trigger Source and Period
         set_trigger_internal()
-        
-        # 4. Set Trigger Timer/Period (e.g., re-trigger every 1 second)
         set_trigger_timer(delay_s=config_params['trigger_delay_s'])
         
-        print("\nConfiguration complete. Signal is running.")
+        # Wait for the sequence to run
+        time.sleep(run_time_s) 
         
-        # Add a delay here so the instrument stays connected long enough to observe settings
-        time.sleep(2)
+        print("\n" + "#" * 50)
+        print(f"SEQUENCE '{sequence_name}' COMPLETE.")
+        print("#" * 50)
+        
+    except Exception as e:
+        print(f"❌ An unexpected error occurred during live execution: {e}")
         
     finally:
-        # 5. Close the connection
-        print("-" * 40)
+        # 4. Close the connection
         close_instrument()
+
+
+if __name__ == "__main__":
+    
+    # 1. Read all available sequences from the config file
+    all_sequences = read_config(CONFIG_FILENAME) 
+    
+    # 2. Prompt the user to select one sequence
+    selected_sequence_config = select_sequence(all_sequences)
+
+    # 3. Execute the selected sequence
+    execute_sequence(selected_sequence_config)
