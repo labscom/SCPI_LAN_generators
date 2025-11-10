@@ -1,0 +1,2 @@
+frequency_hz,amplitude_vpp,offset_v,duty_cycle,trigger_delay_s
+2.5,5,2.5,50,1
