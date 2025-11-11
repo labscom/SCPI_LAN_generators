@@ -5,8 +5,8 @@ import pyvisa.errors
 import sys
 
 # --- Configuration ---
-#VISA_ADDRESS = "TCPIP::192.168.32.11::GPIB0::10::INSTR"
-VISA_ADDRESS = "visa://192.168.32.226/GPIB0::10::INSTR"
+#VISA_ADDRESS = "visa://192.168.32.226/GPIB0::10::INSTR"
+VISA_ADDRESS = "visa://192.168.32.226/GPIB0::12::INSTR"
 
 # Use the default ResourceManager to leverage NI-VISA, which fixed your error.
 rm = pyvisa.ResourceManager()
