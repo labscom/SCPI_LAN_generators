@@ -1,6 +1,6 @@
 pulse_name,frequency_hz,amplitude_vpp,offset_v,duty_cycle,trigger_delay_s
 
-ISO7637-2 Pulse 1/2a (Freq 2.5Hz(t2=200ms)/ Ampl 10V/ Offset2.5V/ Duty circle 50%/ Delay 1 sec (t1=1s);5000 pulses ~1h 23min),2.5,5,2.5,50,1
+ISO7637-2 Pulse 1/2a (Freq 2.5Hz(t2=200ms)/ Ampl 10V/ Offset2.5V/ Duty circle 50%/ Delay 1 sec (t1=1s);5000 pulses ~1h 23min),2.5,5.0,2.5,50,1
 
 ISO7637-2 Pulse 1/2a (Freq 2.5Hz(t2=200ms)/ Ampl 10V/ Offset2.5V/ Duty circle 50%/ Delay 2 sec (t1=2s);5000 pulses ~2h 50min),2.5,5,2.5,50,0.5
 
