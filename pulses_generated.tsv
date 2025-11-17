@@ -1,0 +1,7 @@
+pulse_name	frequency_hz	amplitude_vpp	offset_v	duty_cycle	trigger_delay_s
+ISO7637-2 Pulse 1 (Freq 2.5Hz, Delay 1s, ~5000 pulses)	2.5	5.0	2.5	50	1.0
+ISO7637-2 Pulse 1 (Freq 2.5Hz, Delay 2s, ~2500 pulses)	2.5	5.0	2.5	50	0.5
+ISO7637-2 Pulse 1 (Freq 2.5Hz, Delay 3s, ~1665 pulses)	2.5	5.0	2.5	50	0.333
+ISO7637-2 Pulse 2a (Freq 1kHz, Delay 5.0s)	1000	5.0	2.5	50	5.0
+ISO7637-2 Pulse 2a (Freq 1kHz, Delay 1.0s)	1000	5.0	2.5	50	1.0
+ISO7637-2 Pulse 2a (Freq 1kHz, Delay 0.333s)	1000	5.0	2.5	50	0.333
